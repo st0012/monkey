@@ -3,26 +3,33 @@ package token
 type TokenType string
 
 type Token struct {
-	Type TokenType
+	Type    TokenType
 	Literal string
 }
 
 var keyworkds = map[string]TokenType{
-	"fn": FUCTION,
+	"fn":  FUCTION,
 	"let": LET,
 }
 
 const (
 	ILLEGAL = "ILLEGAL"
-	EOF = "EOF"
+	EOF     = "EOF"
 
 	IDENT = "IDENT"
-	INT = "INT"
+	INT   = "INT"
 
-	ASSIGN = "="
-	PLUS = "+"
+	ASSIGN   = "="
+	PLUS     = "+"
+	MINUS    = "-"
+	BANG     = "!"
+	ASTERISK = "*"
+	SLASH    = "/"
 
-	COMMA = ","
+	LT = "<"
+	GT = ">"
+
+	COMMA     = ","
 	SEMICOLON = ";"
 
 	LPAREN = "("
@@ -31,7 +38,7 @@ const (
 	RBRACE = "}"
 
 	FUCTION = "FUCTION"
-	LET = "LET"
+	LET     = "LET"
 )
 
 func LookupIdent(ident string) TokenType {
