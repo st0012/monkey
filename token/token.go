@@ -7,11 +7,6 @@ type Token struct {
 	Literal string
 }
 
-var keyworkds = map[string]TokenType{
-	"fn":  FUCTION,
-	"let": LET,
-}
-
 const (
 	ILLEGAL = "ILLEGAL"
 	EOF     = "EOF"
@@ -39,7 +34,22 @@ const (
 
 	FUCTION = "FUCTION"
 	LET     = "LET"
+	TRUE    = "TRUE"
+	FALSE   = "FALSE"
+	IF      = "IF"
+	ELSE    = "ELSE"
+	RETURN  = "RETURN"
 )
+
+var keyworkds = map[string]TokenType{
+	"fn":     FUCTION,
+	"let":    LET,
+	"true":   TRUE,
+	"false":  FALSE,
+	"if":     IF,
+	"else":   ELSE,
+	"return": RETURN,
+}
 
 func LookupIdent(ident string) TokenType {
 	if tok, ok := keyworkds[ident]; ok {
