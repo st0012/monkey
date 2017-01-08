@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"github.com/st0012/monkey/ast"
 	"github.com/st0012/monkey/lexer"
 	"testing"
@@ -131,6 +132,44 @@ func TestIntegerLiteralExpression(t *testing.T) {
 	}
 }
 
+func TestParsingPrefixExpression(t *testing.T) {
+	prefixTests := []struct {
+		input        string
+		operator     string
+		integerValue int64
+	}{
+		{"!5;", "!", 5},
+		{"-15;", "-", 15},
+	}
+
+	for _, tt := range prefixTests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("expect %d statements. got=%d", 1, len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("statement is not ast.Expression. got=%T", program.Statements[0])
+		}
+
+		exp, ok := stmt.Expression.(*ast.PrefixExpression)
+		if !ok {
+			t.Fatalf("expression is not a PrefixExpression. got=%T", stmt.Expression)
+		}
+		if exp.Operator != tt.operator {
+			t.Fatalf("expression's operator is not '-'. got=%s", exp.Operator)
+		}
+		if !testIntegerLiteral(t, exp.Right, tt.integerValue) {
+			return
+		}
+	}
+}
+
 func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 	if s.TokenLiteral() != "let" {
 		t.Errorf("s.TokenLiteral not 'let. got=%q", s.TokenLiteral())
@@ -166,4 +205,21 @@ func checkParserErrors(t *testing.T, p *Parser) {
 		t.Errorf("parser error: %q", msg)
 	}
 	t.FailNow()
+}
+
+func testIntegerLiteral(t *testing.T, exp ast.Expression, value int64) bool {
+	il, ok := exp.(*ast.IntegerLiteral)
+	if !ok {
+		t.Errorf("expect exp to be IntegerLiteral. got=%T", exp)
+	}
+	if il.Value != value {
+		t.Errorf("il.Value is not %d. got=%d", value, il.Value)
+		return false
+	}
+	if il.TokenLiteral() != fmt.Sprintf("%d", value) {
+		t.Errorf("il.TokenLiteral not %d. got=%s", value, il.TokenLiteral())
+		return false
+	}
+
+	return true
 }
