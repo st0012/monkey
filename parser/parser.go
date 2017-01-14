@@ -64,6 +64,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
+	p.registerPrefix(token.IF, p.parseIfExpression)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -244,6 +245,76 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 	}
 
 	return exp
+}
+
+func (p *Parser) parseIfExpression() ast.Expression {
+	ie := &ast.IfExpression{Token: p.curToken}
+
+	p.parseCondition(ie)
+	p.parseConsequence(ie)
+
+	// curToken is now ELSE or RBRACE
+	if p.curTokenIs(token.ELSE) {
+		p.parseAlternative(ie)
+	}
+
+	return ie
+}
+
+func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	// curToken is {
+	bs := &ast.BlockStatement{Token: p.curToken}
+
+	p.nextToken()
+
+	for !p.peekTokenIs(token.RBRACE) {
+		bs.Statements = append(bs.Statements, p.parseExpressionStatement())
+	}
+
+	return bs
+}
+
+func (p *Parser) parseCondition(ie *ast.IfExpression) *ast.IfExpression {
+	if !p.expectPeek(token.LPAREN) {
+		return  nil
+	}
+
+	p.nextToken()
+	ie.Condition = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.RPAREN) {
+		return  nil
+	}
+
+	return ie
+}
+
+func (p *Parser) parseConsequence(ie *ast.IfExpression) *ast.IfExpression {
+	if !p.expectPeek(token.LBRACE) {
+		return  nil
+	}
+
+	ie.Consequence = p.parseBlockStatement()
+
+	if !p.expectPeek(token.RBRACE) {
+		return  nil
+	}
+
+	p.nextToken()
+
+	return ie
+}
+
+func (p *Parser) parseAlternative(ie *ast.IfExpression) *ast.IfExpression {
+	if !p.expectPeek(token.LBRACE) {
+		return  nil
+	}
+	ie.Alternative = p.parseBlockStatement()
+	if !p.expectPeek(token.RBRACE) {
+		return  nil
+	}
+
+	return ie
 }
 
 func (p *Parser) peekPrecedence() int {
