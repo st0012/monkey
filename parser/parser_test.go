@@ -119,9 +119,9 @@ func TestIntegerLiteralExpression(t *testing.T) {
 
 func TestParsingPrefixExpression(t *testing.T) {
 	prefixTests := []struct {
-		input        string
-		operator     string
-		expected     interface{}
+		input    string
+		operator string
+		expected interface{}
 	}{
 		{"!5;", "!", 5},
 		{"-15;", "-", 15},
@@ -463,7 +463,7 @@ func testInfixExpression(
 	return true
 }
 
-func testBoolLiteral(t *testing.T, exp ast.Expression,  v bool) bool {
+func testBoolLiteral(t *testing.T, exp ast.Expression, v bool) bool {
 	bo, ok := exp.(*ast.Boolean)
 	if !ok {
 		t.Errorf("exp is not *ast.Boolean. got=%T", exp)

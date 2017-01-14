@@ -156,7 +156,7 @@ func (pe *PrefixExpression) String() string {
 
 type InfixExpression struct {
 	Token    token.Token
-	Left 	 Expression
+	Left     Expression
 	Operator string
 	Right    Expression
 }
@@ -184,7 +184,7 @@ type Boolean struct {
 	Value bool
 }
 
-func (b *Boolean) expressionNode()  {}
+func (b *Boolean) expressionNode() {}
 func (b *Boolean) TokenLiteral() string {
 	return b.Token.Literal
 }
@@ -193,8 +193,8 @@ func (b *Boolean) String() string {
 }
 
 type IfExpression struct {
-	Token token.Token
-	Condition Expression
+	Token       token.Token
+	Condition   Expression
 	Consequence *BlockStatement
 	Alternative *BlockStatement
 }
@@ -222,7 +222,7 @@ func (ie *IfExpression) String() string {
 }
 
 type BlockStatement struct {
-	Token token.Token // {
+	Token      token.Token // {
 	Statements []Statement
 }
 
