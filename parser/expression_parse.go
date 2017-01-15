@@ -54,6 +54,10 @@ func (p *Parser) parseExpression(precendence int) ast.Expression {
 	return leftExp
 }
 
+func (p *Parser) parseIdentifier() ast.Expression {
+	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	lit := &ast.IntegerLiteral{Token: p.curToken}
 
@@ -137,6 +141,52 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	return ie
 }
 
+func (p *Parser) parseFunctionExpression() ast.Expression {
+	fe := &ast.FunctionExpression{Token: p.curToken}
+
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	p.nextToken() // from '(' to parameters
+
+	fe.Parameters = p.parseParameters()
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	fe.BlockStatement = p.parseBlockStatement()
+
+	if !p.expectPeek(token.RBRACE) {
+		return nil
+	}
+
+	return fe
+}
+
+func (p *Parser) parseParameters() []*ast.Identifier {
+	identifiers := []*ast.Identifier{}
+
+
+
+	for !p.curTokenIs(token.RPAREN) {
+		if p.curToken.Type != token.COMMA {
+			id := p.parseIdentifier()
+			identifier := id.(*ast.Identifier)
+			fmt.Print(identifier.String())
+			identifiers = append(identifiers, identifier)
+		}
+		p.nextToken()
+	}
+
+	return identifiers
+}
+
+func (p *Parser) parseComma() {
+	p.nextToken()
+}
+
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	// curToken is {
 	bs := &ast.BlockStatement{Token: p.curToken}
@@ -193,6 +243,4 @@ func (p *Parser) parseAlternative(ie *ast.IfExpression) *ast.IfExpression {
 	return ie
 }
 
-func (p *Parser) parseIdentifier() ast.Expression {
-	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
-}
+

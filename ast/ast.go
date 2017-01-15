@@ -239,3 +239,32 @@ func (bs *BlockStatement) String() string {
 
 	return out.String()
 }
+
+type FunctionExpression struct {
+	Token token.Token
+	Parameters []*Identifier
+	BlockStatement *BlockStatement
+}
+
+func (fe *FunctionExpression) expressionNode() {}
+func (fe *FunctionExpression) TokenLiteral() string {
+	return fe.Token.Literal
+}
+func (fe *FunctionExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("fn")
+	out.WriteString("(")
+
+	for _, param := range fe.Parameters {
+		out.WriteString(param.String())
+		out.WriteString(",")
+	}
+
+	out.WriteString(") ")
+	out.WriteString("{ ")
+	out.WriteString(fe.BlockStatement.String())
+	out.WriteString(" }")
+
+	return out.String()
+}

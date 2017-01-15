@@ -5,6 +5,7 @@ import (
 	"github.com/st0012/monkey/ast"
 	"github.com/st0012/monkey/lexer"
 	"testing"
+	"github.com/st0012/monkey/token"
 )
 
 func TestLetStatement(t *testing.T) {
@@ -361,6 +362,29 @@ func TestIfExpression(t *testing.T) {
 	if !testInfixExpression(t, alternative.Expression, "y", "+", 4) {
 		return
 	}
+}
+
+func TestFunctionExpression(t *testing.T) {
+	input := `fn(x, y) { x + y }`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	expression := stmt.Expression.(*ast.FunctionExpression)
+
+	if expression.Token.Type != token.FUCTION {
+		t.Fatalf("expect function expression's token to be 'FUNCTION'. got=%T", expression.Token.Type)
+	}
+
+	testLiteralExpression(t, expression.Parameters[0], "x")
+	testLiteralExpression(t, expression.Parameters[1], "y")
+
+	expressionStmt := expression.BlockStatement.Statements[0].(*ast.ExpressionStatement)
+
+	testInfixExpression(t, expressionStmt.Expression, "x", "+", "y")
 }
 
 func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
