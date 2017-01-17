@@ -134,7 +134,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	p.parseConsequence(ie)
 
 	// curToken is now ELSE or RBRACE
-	if p.curTokenIs(token.ELSE) {
+	if p.peekTokenIs(token.ELSE) {
 		p.parseAlternative(ie)
 	}
 
@@ -148,8 +148,6 @@ func (p *Parser) parseFunctionExpression() ast.Expression {
 		return nil
 	}
 
-	p.nextToken() // from '(' to parameters
-
 	fe.Parameters = p.parseParameters()
 
 	if !p.expectPeek(token.LBRACE) {
@@ -158,43 +156,49 @@ func (p *Parser) parseFunctionExpression() ast.Expression {
 
 	fe.BlockStatement = p.parseBlockStatement()
 
-	if !p.expectPeek(token.RBRACE) {
-		return nil
-	}
-
 	return fe
 }
 
 func (p *Parser) parseParameters() []*ast.Identifier {
 	identifiers := []*ast.Identifier{}
 
-
-
-	for !p.curTokenIs(token.RPAREN) {
-		if p.curToken.Type != token.COMMA {
-			id := p.parseIdentifier()
-			identifier := id.(*ast.Identifier)
-			fmt.Print(identifier.String())
-			identifiers = append(identifiers, identifier)
-		}
+	if p.peekTokenIs(token.RPAREN) {
 		p.nextToken()
+		return identifiers
+	} // empty params
+
+	p.nextToken()
+
+	ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	identifiers = append(identifiers, ident)
+
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		identifier := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+		identifiers = append(identifiers, identifier)
+	}
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
 	}
 
 	return identifiers
 }
 
-func (p *Parser) parseComma() {
-	p.nextToken()
-}
-
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	// curToken is {
 	bs := &ast.BlockStatement{Token: p.curToken}
+	bs.Statements = []ast.Statement{}
 
 	p.nextToken()
 
-	for !p.peekTokenIs(token.RBRACE) {
-		bs.Statements = append(bs.Statements, p.parseExpressionStatement())
+	for !p.curTokenIs(token.RBRACE) {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			bs.Statements = append(bs.Statements, stmt)
+		}
+		p.nextToken()
 	}
 
 	return bs
@@ -222,23 +226,16 @@ func (p *Parser) parseConsequence(ie *ast.IfExpression) *ast.IfExpression {
 
 	ie.Consequence = p.parseBlockStatement()
 
-	if !p.expectPeek(token.RBRACE) {
-		return nil
-	}
-
-	p.nextToken()
-
 	return ie
 }
 
 func (p *Parser) parseAlternative(ie *ast.IfExpression) *ast.IfExpression {
+	p.nextToken()
+
 	if !p.expectPeek(token.LBRACE) {
 		return nil
 	}
 	ie.Alternative = p.parseBlockStatement()
-	if !p.expectPeek(token.RBRACE) {
-		return nil
-	}
 
 	return ie
 }

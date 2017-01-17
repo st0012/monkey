@@ -312,7 +312,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 }
 
 func TestIfExpression(t *testing.T) {
-	input := `if (x < y) { x + 5 } else { y + 4 }`
+	input := `if (x < y) { x + 5 } else { y + 4 };`
 
 	l := lexer.New(input)
 	p := New(l)
@@ -365,7 +365,7 @@ func TestIfExpression(t *testing.T) {
 }
 
 func TestFunctionExpression(t *testing.T) {
-	input := `fn(x, y) { x + y }`
+	input := `fn(x, y) { x + y };`
 
 	l := lexer.New(input)
 	p := New(l)
@@ -385,6 +385,34 @@ func TestFunctionExpression(t *testing.T) {
 	expressionStmt := expression.BlockStatement.Statements[0].(*ast.ExpressionStatement)
 
 	testInfixExpression(t, expressionStmt.Expression, "x", "+", "y")
+}
+
+func TestFunctionParameterParsing(t *testing.T) {
+	tests := []struct{
+		input string
+		expectedParams []string
+	} {
+		{ input: "fn() {};", expectedParams: []string{} },
+		{ input: "fn(x) {};", expectedParams: []string{ "x" } },
+		{ input: "fn(x, y, z) {};", expectedParams: []string{"x", "y", "z"} },
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+		expressionStatement := program.Statements[0].(*ast.ExpressionStatement)
+		functionExpression := expressionStatement.Expression.(*ast.FunctionExpression)
+
+		if len(functionExpression.Parameters) != len(tt.expectedParams) {
+			t.Errorf("expect %d parameters. got=%d", len(tt.expectedParams), len(functionExpression.Parameters))
+		}
+
+		for i, expectedParam := range tt.expectedParams {
+			testIdentifier(t, functionExpression.Parameters[i], expectedParam)
+		}
+	}
 }
 
 func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
