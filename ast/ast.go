@@ -257,9 +257,11 @@ func (fe *FunctionExpression) String() string {
 	out.WriteString("fn")
 	out.WriteString("(")
 
-	for _, param := range fe.Parameters {
+	for i, param := range fe.Parameters {
 		out.WriteString(param.String())
-		out.WriteString(",")
+		if i != len(fe.Parameters) - 1 {
+			out.WriteString(", ")
+		}
 	}
 
 	out.WriteString(") ")
