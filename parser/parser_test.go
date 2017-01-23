@@ -4,75 +4,70 @@ import (
 	"fmt"
 	"github.com/st0012/monkey/ast"
 	"github.com/st0012/monkey/lexer"
-	"testing"
 	"github.com/st0012/monkey/token"
+	"testing"
 )
 
 func TestLetStatement(t *testing.T) {
-	input := `
-	let x = 5;
-	let y = 10;
-	let foobar = 1234;
-	`
-
-	l := lexer.New(input)
-	p := New(l)
-
-	program := p.ParseProgram()
-	checkParserErrors(t, p)
-
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
-	}
-	if len(program.Statements) != 3 {
-		t.Fatalf("program.Statements does not contain 3 statements. got=%d",
-			len(program.Statements))
-	}
-
 	tests := []struct {
+		input              string
 		expectedIdentifier string
+		expectedValue      interface{}
 	}{
-		{"x"},
-		{"y"},
-		{"foobar"},
+		{"let x = 5;", "x", 5},
+		{"let y = true;", "y", true},
+		{"let foobar = y;", "foobar", "y"},
 	}
 
-	for i, tt := range tests {
-		stmt := program.Statements[i]
-		if !testLetStatement(t, stmt, tt.expectedIdentifier) {
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if program == nil {
+			t.Fatalf("ParseProgram() returned nil")
+		}
+
+		if !testLetStatement(t, program.Statements[0], tt.expectedIdentifier) {
 			return
 		}
 	}
 }
 
 func TestReturnStatements(t *testing.T) {
-	input := `
-	return 5;
-	return 10;
-	return 1234;
-	`
-
-	l := lexer.New(input)
-	p := New(l)
-
-	program := p.ParseProgram()
-	checkParserErrors(t, p)
-
-	if len(program.Statements) != 3 {
-		t.Fatalf("program.Statements does not contain 3 statements. got=%d",
-			len(program.Statements))
+	tests := []struct {
+		input         string
+		expectedValue interface{}
+	}{
+		{"return 5;", 5},
+		{"return x;", "x"},
+		{"return true;", true},
 	}
 
-	for _, stmt := range program.Statements {
-		returnStmt, ok := stmt.(*ast.ReturnStatement)
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain 1 statements. got=%d",
+				len(program.Statements))
+		}
+
+		returnStmt, ok := program.Statements[0].(*ast.ReturnStatement)
 		if !ok {
-			t.Errorf("stmt not *ast.returnStatement. got=%T", stmt)
-			continue
+			t.Errorf("stmt not *ast.returnStatement. got=%T", returnStmt)
 		}
 		if returnStmt.TokenLiteral() != "return" {
 			t.Errorf("returnStmt.TokenLiteral not 'return', got %q", returnStmt.TokenLiteral())
 		}
+		testLiteralExpression(t, returnStmt.ReturnValue, tt.expectedValue)
 	}
+
 }
 
 func TestIdentifierExpression(t *testing.T) {
@@ -388,13 +383,13 @@ func TestFunctionExpression(t *testing.T) {
 }
 
 func TestFunctionParameterParsing(t *testing.T) {
-	tests := []struct{
-		input string
+	tests := []struct {
+		input          string
 		expectedParams []string
-	} {
-		{ input: "fn() {};", expectedParams: []string{} },
-		{ input: "fn(x) {};", expectedParams: []string{ "x" } },
-		{ input: "fn(x, y, z) {};", expectedParams: []string{"x", "y", "z"} },
+	}{
+		{input: "fn() {};", expectedParams: []string{}},
+		{input: "fn(x) {};", expectedParams: []string{"x"}},
+		{input: "fn(x, y, z) {};", expectedParams: []string{"x", "y", "z"}},
 	}
 
 	for _, tt := range tests {
@@ -416,7 +411,7 @@ func TestFunctionParameterParsing(t *testing.T) {
 }
 
 func TestCallExpression(t *testing.T) {
-	input := `add(1, 2 * 3, 4 + 5, fn(x, y) { x + y });`
+	input := `add(1, 2 * 3, 4 + 5, fn(x, y) { return x + y; });`
 
 	l := lexer.New(input)
 	p := New(l)
@@ -435,8 +430,8 @@ func TestCallExpression(t *testing.T) {
 	}
 
 	testIntegerLiteral(t, callExpression.Arguments[0], 1)
-	testInfixExpression(t, callExpression.Arguments[1], 2 , "*", 3)
-	testInfixExpression(t, callExpression.Arguments[2], 4 , "+", 5)
+	testInfixExpression(t, callExpression.Arguments[1], 2, "*", 3)
+	testInfixExpression(t, callExpression.Arguments[2], 4, "+", 5)
 
 	// test function arguments
 	function, ok := callExpression.Arguments[3].(*ast.FunctionExpression)
@@ -448,15 +443,14 @@ func TestCallExpression(t *testing.T) {
 	testIdentifier(t, function.Parameters[0], "x")
 	testIdentifier(t, function.Parameters[1], "y")
 
-	functionBody, ok := function.BlockStatement.Statements[0].(*ast.ExpressionStatement)
+	returnStmt, ok := function.BlockStatement.Statements[0].(*ast.ReturnStatement)
 
 	if !ok {
 		t.Errorf("expect function expression's body to be an ReturnStatement. got=%T", function.BlockStatement.Statements[0])
 	}
 
-	testInfixExpression(t, functionBody.Expression, "x", "+", "y")
+	testInfixExpression(t, returnStmt.ReturnValue, "x", "+", "y")
 }
-
 
 func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 	if s.TokenLiteral() != "let" {
