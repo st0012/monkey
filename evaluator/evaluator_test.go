@@ -7,6 +7,53 @@ import (
 	"testing"
 )
 
+func TestEvalIfExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{
+			`if (10 > 5) {
+				100
+			} else {
+				-10
+			}
+			`,
+			100,
+		},
+		{
+			`if (5 != 5) {
+				false
+			} else {
+				true
+			}
+			`,
+			true,
+		},
+		{"if (true) { 10 }", 10},
+		{"if (false) { 10 }", nil},
+		{"if (1) { 10 }", 10},
+		{"if (1 < 2) { 10 }", 10},
+		{"if (1 > 2) { 10 }", nil},
+		{"if (1 > 2) { 10 } else { 20 }", 20},
+		{"if (1 < 2) { 10 } else { 20 }", 10},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+
+		switch tt.expected.(type) {
+		case int64:
+			testIntegerObject(t, evaluated, tt.expected.(int64))
+		case bool:
+			testBooleanObject(t, evaluated, tt.expected.(bool))
+		case nil:
+			testNullObject(t, evaluated)
+		}
+
+	}
+}
+
 func TestEvalInfixIntegerExpression(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -163,6 +210,15 @@ func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
 	}
 	if result.Value != expected {
 		t.Errorf("object has wrong value. expect=%d, got=%d", expected, result.Value)
+		return false
+	}
+
+	return true
+}
+
+func testNullObject(t *testing.T, obj object.Object) bool {
+	if obj != NULL {
+		t.Errorf("object is not NULL. got=%T (%+v)", obj, obj)
 		return false
 	}
 

@@ -19,8 +19,12 @@ func Eval(node ast.Node) object.Object {
 		return evalStatements(node.Statements)
 	case *ast.ExpressionStatement:
 		return Eval(node.Expression)
+	case *ast.BlockStatement:
+		return evalStatements(node.Statements)
 
 	// Expressions
+	case *ast.IfExpression:
+		return evalIfExpression(node)
 	case *ast.PrefixExpression:
 		return evalPrefixExpression(node.Operator, Eval(node.Right))
 	case *ast.InfixExpression:
@@ -125,4 +129,17 @@ func evalBooleanInfixExpression(left object.Object, operator string, right objec
 		return NULL
 	}
 
+}
+
+func evalIfExpression(exp *ast.IfExpression) object.Object {
+	condition := Eval(exp.Condition)
+	if condition.Type() == object.INTEGER_OBJ || condition.(*object.Boolean).Value {
+		return Eval(exp.Consequence)
+	} else {
+		if exp.Alternative != nil {
+			return Eval(exp.Alternative)
+		} else {
+			return NULL
+		}
+	}
 }
