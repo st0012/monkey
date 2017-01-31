@@ -2,6 +2,7 @@ package object
 
 import (
 	"fmt"
+	"github.com/st0012/monkey/ast"
 )
 
 type ObjectType string
@@ -12,6 +13,7 @@ const (
 	NULL_OBJ         = "NULL"
 	RETURN_VALUE_OBJ = "RETURN_VALUE"
 	ERROR_OBJ        = "ERROR"
+	FUNCTION_OBJ        = "FUNCTION"
 )
 
 type Object interface {
@@ -75,4 +77,16 @@ func (e *Error) Type() ObjectType {
 
 func (e *Error) Inspect() string {
 	return "ERROR: " + e.Message
+}
+
+type Function struct {
+	Expression *ast.FunctionExpression
+}
+
+func (f *Function) Type() ObjectType {
+	return FUNCTION_OBJ
+}
+
+func (f *Function) Inspect() string {
+	return f.Expression.String()
 }

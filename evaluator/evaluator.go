@@ -44,6 +44,11 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	// Expressions
 	case *ast.IfExpression:
 		return evalIfExpression(node, env)
+	case *ast.FunctionExpression:
+		return &object.Function{Expression: node}
+	case *ast.CallExpression:
+		return evalCallExpression(node, env)
+
 	case *ast.PrefixExpression:
 		val := Eval(node.Right, env)
 		if isError(val) {
@@ -205,6 +210,42 @@ func evalIfExpression(exp *ast.IfExpression, env *object.Environment) object.Obj
 			return NULL
 		}
 	}
+}
+
+func evalCallExpression(exp *ast.CallExpression, env *object.Environment) object.Object {
+	functionScope := object.NewEnvironment()
+
+	// Determine function name.
+	switch call := exp.Function.(type) {
+	case *ast.Identifier:
+		val, exist := env.Get(call.Value)
+		if !exist {
+			return newError("function not found: %s", call.Value)
+		}
+
+		functionObject := val.(*object.Function)
+		evalFunctionArgs(functionObject.Expression.Parameters, exp.Arguments, functionScope, env)
+
+		return Eval(functionObject.Expression.BlockStatement, functionScope)
+	case *ast.FunctionExpression:
+		evalFunctionArgs(call.Parameters, exp.Arguments, functionScope, env)
+
+		return Eval(call.BlockStatement, functionScope)
+	}
+
+	return nil
+}
+
+func evalFunctionArgs(parameters []*ast.Identifier, args []ast.Expression, functionScope *object.Environment, env *object.Environment) object.Object {
+	for i, arg := range args {
+		argName := parameters[i].Value
+		argValue := Eval(arg, env)
+		if isError(argValue) {
+			return argValue
+		}
+		functionScope.Set(argName, argValue)
+	}
+	return nil
 }
 
 func newError(format string, args ...interface{}) *object.Error {
