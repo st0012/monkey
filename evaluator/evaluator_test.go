@@ -7,9 +7,20 @@ import (
 	"testing"
 )
 
+func TestClosures(t *testing.T) {
+	input := `
+let newAdder = fn(x) {
+  fn(y) { x + y };
+};
+
+let addTwo = newAdder(2);
+addTwo(2);`
+	testIntegerObject(t, testEval(input), 4)
+}
+
 func TestFunctionCall(t *testing.T) {
-	tests := []struct{
-		input string
+	tests := []struct {
+		input  string
 		result int64
 	}{
 		{"let identity = fn(x) { return x; }; identity(5);", 5},
@@ -18,6 +29,7 @@ func TestFunctionCall(t *testing.T) {
 		{"let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20},
 		{"fn(x) { x; }(5)", 5},
 		{"let add_a = fn(x) { x + a }; let a = 5; add_a(5 + 5);", 15},
+		{"let add = fn(x, y) { return x + y; }; add(5 + 5, add(5, 5));", 20},
 	}
 
 	for _, tt := range tests {
@@ -88,6 +100,10 @@ func TestErrorHandling(t *testing.T) {
 		{
 			"foobar",
 			"identifier not found: foobar",
+		},
+		{
+			"let add = fn(x, y) { x + y; }; add(1, 2, 3);",
+			"wrong arguments: expect=2, got=3",
 		},
 	}
 

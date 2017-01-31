@@ -45,9 +45,16 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.IfExpression:
 		return evalIfExpression(node, env)
 	case *ast.FunctionExpression:
-		return &object.Function{Expression: node}
+		return &object.Function{Parameters: node.Parameters, Body: node.BlockStatement, Env: env}
 	case *ast.CallExpression:
-		return evalCallExpression(node, env)
+		function := Eval(node.Function, env)
+		if isError(function) {
+			return function
+		}
+
+		args := evalArgs(node.Arguments, env)
+
+		return applyFunction(function, args)
 
 	case *ast.PrefixExpression:
 		val := Eval(node.Right, env)
@@ -212,40 +219,48 @@ func evalIfExpression(exp *ast.IfExpression, env *object.Environment) object.Obj
 	}
 }
 
-func evalCallExpression(exp *ast.CallExpression, env *object.Environment) object.Object {
-	functionScope := object.NewClosedEnvironment(env)
-
-	// Determine function name.
-	switch call := exp.Function.(type) {
-	case *ast.Identifier:
-		val, exist := env.Get(call.Value)
-		if !exist {
-			return newError("function not found: %s", call.Value)
-		}
-
-		functionObject := val.(*object.Function)
-		evalFunctionArgs(functionObject.Expression.Parameters, exp.Arguments, functionScope, env)
-
-		return Eval(functionObject.Expression.BlockStatement, functionScope)
-	case *ast.FunctionExpression:
-		evalFunctionArgs(call.Parameters, exp.Arguments, functionScope, env)
-
-		return Eval(call.BlockStatement, functionScope)
+func applyFunction(fn object.Object, args []object.Object) object.Object {
+	function, ok := fn.(*object.Function)
+	if !ok {
+		return newError("not a function: %s", fn)
 	}
 
-	return nil
+	if len(function.Parameters) != len(args) {
+		return newError("wrong arguments: expect=%d, got=%d", len(function.Parameters), len(args))
+	}
+
+	extendedEnv := extendFunctionEnv(function, args)
+	evaluatedFunction := Eval(function.Body, extendedEnv)
+
+	if returnValue, ok := evaluatedFunction.(*object.ReturnValue); ok {
+		return returnValue.Value
+	}
+	return evaluatedFunction
 }
 
-func evalFunctionArgs(parameters []*ast.Identifier, args []ast.Expression, functionScope *object.Environment, env *object.Environment) object.Object {
-	for i, arg := range args {
-		argName := parameters[i].Value
-		argValue := Eval(arg, env)
-		if isError(argValue) {
-			return argValue
+func evalArgs(exps []ast.Expression, env *object.Environment) []object.Object {
+	args := []object.Object{}
+
+	for _, exp := range exps {
+		arg := Eval(exp, env)
+		args = append(args, arg)
+		if isError(arg) {
+			return []object.Object{arg}
 		}
-		functionScope.Set(argName, argValue)
 	}
-	return nil
+
+	return args
+}
+
+func extendFunctionEnv(function *object.Function, args []object.Object) *object.Environment {
+	e := object.NewClosedEnvironment(function.Env)
+
+	for i, arg := range args {
+		argName := function.Parameters[i].Value
+		e.Set(argName, arg)
+	}
+
+	return e
 }
 
 func newError(format string, args ...interface{}) *object.Error {
