@@ -23,15 +23,33 @@ func Eval(node ast.Node) object.Object {
 	case *ast.BlockStatement:
 		return evalBlockStatements(node.Statements)
 	case *ast.ReturnStatement:
-		return evalReturnStatement(node.ReturnValue)
+		val := Eval(node.ReturnValue)
+		if isError(val) {
+			return val
+		}
+		return &object.ReturnValue{Value: val}
 
 	// Expressions
 	case *ast.IfExpression:
 		return evalIfExpression(node)
 	case *ast.PrefixExpression:
-		return evalPrefixExpression(node.Operator, Eval(node.Right))
+		val := Eval(node.Right)
+		if isError(val) {
+			return val
+		}
+		return evalPrefixExpression(node.Operator, val)
 	case *ast.InfixExpression:
-		return evalInfixExpression(Eval(node.Left), node.Operator, Eval(node.Right))
+		valLeft := Eval(node.Left)
+		if isError(valLeft) {
+			return valLeft
+		}
+
+		valRight := Eval(node.Right)
+		if isError(valRight) {
+			return valRight
+		}
+
+		return evalInfixExpression(valLeft, node.Operator, valRight)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.Boolean:
@@ -162,6 +180,10 @@ func evalBooleanInfixExpression(left object.Object, operator string, right objec
 
 func evalIfExpression(exp *ast.IfExpression) object.Object {
 	condition := Eval(exp.Condition)
+	if isError(condition) {
+		return condition
+	}
+
 	if condition.Type() == object.INTEGER_OBJ || condition.(*object.Boolean).Value {
 		return Eval(exp.Consequence)
 	} else {
@@ -173,10 +195,13 @@ func evalIfExpression(exp *ast.IfExpression) object.Object {
 	}
 }
 
-func evalReturnStatement(exp ast.Expression) object.Object {
-	return &object.ReturnValue{Value: Eval(exp)}
-}
-
 func newError(format string, args ...interface{}) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, args...)}
+}
+
+func isError(obj object.Object) bool {
+	if obj != nil {
+		return obj.Type() == object.ERROR_OBJ
+	}
+	return false
 }
