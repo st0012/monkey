@@ -3,6 +3,7 @@ package evaluator
 import (
 	"github.com/st0012/monkey/ast"
 	"github.com/st0012/monkey/object"
+	"fmt"
 )
 
 var (
@@ -52,6 +53,10 @@ func evalProgram(stmts []ast.Statement) object.Object {
 		if returnValue, ok := result.(*object.ReturnValue); ok {
 			return returnValue.Value
 		}
+
+		if error, ok := result.(*object.Error); ok {
+			return error
+		}
 	}
 
 	return result
@@ -78,7 +83,7 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 	case "-":
 		return evalMinusPrefixExpression(right)
 	}
-	return NULL
+	return &object.Error{Message: "unknown operator: " + operator + fmt.Sprintf("%s", right.Type()) }
 }
 
 func evalBangPrefixExpression(right object.Object) *object.Boolean {
@@ -94,7 +99,7 @@ func evalBangPrefixExpression(right object.Object) *object.Boolean {
 
 func evalMinusPrefixExpression(right object.Object) object.Object {
 	if right.Type() != object.INTEGER_OBJ {
-		return NULL
+		return &object.Error{Message: "unknown operator: -" + fmt.Sprintf("%s", right.Type()) }
 	}
 	value := right.(*object.Integer).Value
 	return &object.Integer{Value: -value}
@@ -107,7 +112,7 @@ func evalInfixExpression(left object.Object, operator string, right object.Objec
 	case left.Type() == object.BOOLEAN_OBJ && right.Type() == object.BOOLEAN_OBJ:
 		return evalBooleanInfixExpression(left, operator, right)
 	default:
-		return NULL
+		return &object.Error{Message: "type mismatch: " + fmt.Sprintf("%s", left.Type()) + " " + operator + " " + fmt.Sprintf("%s", right.Type()) }
 	}
 }
 
@@ -133,7 +138,7 @@ func evalIntegerInfixExpression(left object.Object, operator string, right objec
 	case "!=":
 		return &object.Boolean{Value: leftValue != rightValue}
 	default:
-		return NULL
+		return &object.Error{Message: "unknown operator: " + fmt.Sprintf("%s", left.Type()) + " " + operator + " " + fmt.Sprintf("%s", right.Type()) }
 	}
 }
 
@@ -146,7 +151,7 @@ func evalBooleanInfixExpression(left object.Object, operator string, right objec
 	case "!=":
 		return &object.Boolean{Value: leftValue != rightValue}
 	default:
-		return NULL
+		return &object.Error{Message: "unknown operator: " + fmt.Sprintf("%s", left.Type()) + " " + operator + " " + fmt.Sprintf("%s", right.Type()) }
 	}
 
 }
