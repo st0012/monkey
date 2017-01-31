@@ -213,7 +213,7 @@ func evalIfExpression(exp *ast.IfExpression, env *object.Environment) object.Obj
 }
 
 func evalCallExpression(exp *ast.CallExpression, env *object.Environment) object.Object {
-	functionScope := object.NewEnvironment()
+	functionScope := object.NewClosedEnvironment(env)
 
 	// Determine function name.
 	switch call := exp.Function.(type) {

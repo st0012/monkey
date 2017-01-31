@@ -12,25 +12,12 @@ func TestFunctionCall(t *testing.T) {
 		input string
 		result int64
 	}{
-		{
-			`
-			let add = fn(x, y) { x + y; };
-			add(5, 10);
-			`,
-			15,
-		},
-		{
-			`
-			let max = fn(x, y) { if (x > y) { x } else { y } };
-			max(5, 10);
-			`,
-			10,
-		},
 		{"let identity = fn(x) { return x; }; identity(5);", 5},
 		{"let double = fn(x) { x * 2; }; double(5);", 10},
 		{"let add = fn(x, y) { x + y; }; add(5, 5);", 10},
 		{"let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20},
 		{"fn(x) { x; }(5)", 5},
+		{"let add_a = fn(x) { x + a }; let a = 5; add_a(5 + 5);", 15},
 	}
 
 	for _, tt := range tests {
