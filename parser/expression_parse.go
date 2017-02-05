@@ -74,6 +74,13 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	return lit
 }
 
+func (p *Parser) parseStringLiteral() ast.Expression {
+	lit := &ast.StringLiteral{Token: p.curToken}
+	lit.Value = p.curToken.Literal
+
+	return lit
+}
+
 func (p *Parser) parseBooleanLiteral() ast.Expression {
 	lit := &ast.Boolean{Token: p.curToken}
 

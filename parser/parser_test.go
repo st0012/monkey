@@ -113,6 +113,36 @@ func TestIntegerLiteralExpression(t *testing.T) {
 	testIntegerLiteral(t, literal, 5)
 }
 
+func TestStringLiteralExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{input: `"testString";`, expected: "testString"},
+		{input: `'test_string';`, expected: "test_string"},
+		{input: `'!@#!@!$123';`, expected: "!@#!@!$123"},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program has wrong number of statements. got=%d", len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("first program statement is not ast.ExpressionStatement. got=%T", program.Statements[0])
+		}
+
+		literal, ok := stmt.Expression.(*ast.StringLiteral)
+		testStringLiteral(t, literal, tt.expected)
+	}
+}
+
 func TestParsingPrefixExpression(t *testing.T) {
 	prefixTests := []struct {
 		input    string
@@ -290,7 +320,6 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 			"add(a + b + c * d / f + g)",
 			"add((((a + b) + ((c * d) / f)) + g))",
 		},
-
 	}
 
 	for _, tt := range tests {
@@ -500,6 +529,23 @@ func testIntegerLiteral(t *testing.T, exp ast.Expression, value int64) bool {
 	}
 	if il.TokenLiteral() != fmt.Sprintf("%d", value) {
 		t.Errorf("il.TokenLiteral not %d. got=%s", value, il.TokenLiteral())
+		return false
+	}
+
+	return true
+}
+
+func testStringLiteral(t *testing.T, exp ast.Expression, value string) bool {
+	il, ok := exp.(*ast.StringLiteral)
+	if !ok {
+		t.Errorf("expect exp to be StringLiteral. got=%T", exp)
+	}
+	if il.Value != value {
+		t.Errorf("il.Value is not %s. got=%s", value, il.Value)
+		return false
+	}
+	if il.TokenLiteral() != value {
+		t.Errorf("il.TokenLiteral not %s. got=%s", value, il.TokenLiteral())
 		return false
 	}
 
