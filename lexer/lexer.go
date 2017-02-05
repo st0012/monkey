@@ -24,6 +24,10 @@ func (l *Lexer) NextToken() token.Token {
 	l.skipWhitespace()
 
 	switch l.ch {
+	case '"', byte('\''):
+		tok.Literal = l.readString(l.ch)
+		tok.Type = token.STRING
+		return tok
 	case '=':
 		if l.peekChar() == '=' {
 			current_byte := l.ch
@@ -105,6 +109,20 @@ func (l *Lexer) readIdentifier() string {
 		l.readChar()
 	}
 	return l.input[position:l.position]
+}
+
+func (l *Lexer) readString(ch byte) string {
+	l.readChar()
+	position := l.position // currently at string's first letter
+
+	for l.peekChar() != ch {
+		l.readChar()
+	}
+
+	l.readChar()                           // currently at string's last letter
+	result := l.input[position:l.position] // get full string
+	l.readChar()                           // move to string's later quote
+	return result
 }
 
 func (l *Lexer) readChar() {
