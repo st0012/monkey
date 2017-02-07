@@ -159,6 +159,8 @@ func evalInfixExpression(left object.Object, operator string, right object.Objec
 		return evalIntegerInfixExpression(left, operator, right)
 	case left.Type() == object.BOOLEAN_OBJ && right.Type() == object.BOOLEAN_OBJ:
 		return evalBooleanInfixExpression(left, operator, right)
+	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
+		return evalStringInfixExpression(left, operator, right)
 	default:
 		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
 	}
@@ -202,6 +204,26 @@ func evalBooleanInfixExpression(left object.Object, operator string, right objec
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 
+}
+
+func evalStringInfixExpression(left object.Object, operator string, right object.Object) object.Object {
+	leftValue := left.(*object.String).Value
+	rightValue := right.(*object.String).Value
+
+	switch operator {
+	case "+":
+		return &object.String{Value: leftValue + rightValue}
+	case ">":
+		return &object.Boolean{Value: leftValue > rightValue}
+	case "<":
+		return &object.Boolean{Value: leftValue < rightValue}
+	case "==":
+		return &object.Boolean{Value: leftValue == rightValue}
+	case "!=":
+		return &object.Boolean{Value: leftValue != rightValue}
+	default:
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
 }
 
 func evalIfExpression(exp *ast.IfExpression, env *object.Environment) object.Object {
