@@ -10,12 +10,14 @@ import (
 type ObjectType string
 
 const (
-	INTEGER_OBJ      = "INTEGER"
-	BOOLEAN_OBJ      = "BOOLEAN"
-	NULL_OBJ         = "NULL"
-	RETURN_VALUE_OBJ = "RETURN_VALUE"
-	ERROR_OBJ        = "ERROR"
-	FUNCTION_OBJ     = "FUNCTION"
+	INTEGER_OBJ           = "INTEGER"
+	STRING_OBJ            = "STRING"
+	BOOLEAN_OBJ           = "BOOLEAN"
+	NULL_OBJ              = "NULL"
+	RETURN_VALUE_OBJ      = "RETURN_VALUE"
+	ERROR_OBJ             = "ERROR"
+	FUNCTION_OBJ          = "FUNCTION"
+	BUILD_IN_FUNCTION_OBJ = "BUILD_IN_FUNCTION"
 )
 
 type Object interface {
@@ -33,6 +35,18 @@ func (i *Integer) Type() ObjectType {
 
 func (i *Integer) Inspect() string {
 	return fmt.Sprintf("%d", i.Value)
+}
+
+type String struct {
+	Value string
+}
+
+func (s *String) Type() ObjectType {
+	return STRING_OBJ
+}
+
+func (s *String) Inspect() string {
+	return s.Value
 }
 
 type Boolean struct {
@@ -107,4 +121,16 @@ func (f *Function) Inspect() string {
 	out.WriteString("\n}")
 
 	return out.String()
+}
+
+type BuiltInFunction struct {
+	Fn func(args ...Object) Object
+}
+
+func (bif *BuiltInFunction) Type() ObjectType {
+	return BUILD_IN_FUNCTION_OBJ
+}
+
+func (bif *BuiltInFunction) Inspect() string {
+	return "returns string's length"
 }

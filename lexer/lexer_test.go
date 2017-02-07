@@ -24,6 +24,9 @@ func TestNextToken(t *testing.T) {
 		return false;
 	}
 
+	"string1";
+	'string2';
+
 	10 == 10;
 
 	10 != 9;
@@ -98,6 +101,10 @@ func TestNextToken(t *testing.T) {
 		{token.FALSE, "false"},
 		{token.SEMICOLON, ";"},
 		{token.RBRACE, "}"},
+		{token.STRING, "string1"},
+		{token.SEMICOLON, ";"},
+		{token.STRING, "string2"},
+		{token.SEMICOLON, ";"},
 		{token.INT, "10"},
 		{token.EQ, "=="},
 		{token.INT, "10"},
@@ -106,6 +113,7 @@ func TestNextToken(t *testing.T) {
 		{token.NOT_EQ, "!="},
 		{token.INT, "9"},
 		{token.SEMICOLON, ";"},
+
 		{token.EOF, ""},
 	}
 

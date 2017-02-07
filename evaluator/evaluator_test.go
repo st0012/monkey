@@ -7,6 +7,37 @@ import (
 	"testing"
 )
 
+func TestBuildInFunction(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{`len("12345");`, 5},
+		{`let s = "string"; len(s);`, 6},
+		{`len(1)`, "argument to `len` not supported, got INTEGER"},
+		//{`len("one", "two")`, "wrong number of arguments. got=2"},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		switch expected := tt.expected.(type) {
+		case int:
+			testIntegerObject(t, evaluated, int64(expected))
+		case string:
+			errObj, ok := evaluated.(*object.Error)
+			if !ok {
+				t.Errorf("object is not Error. got=%T (%+v)",
+					evaluated, evaluated)
+				continue
+			}
+			if errObj.Message != expected {
+				t.Errorf("wrong error message. expected=%q, got=%q",
+					expected, errObj.Message)
+			}
+		}
+	}
+}
+
 func TestClosures(t *testing.T) {
 	input := `
 let newAdder = fn(x) {
@@ -226,6 +257,30 @@ func TestEvalInfixIntegerExpression(t *testing.T) {
 	}
 }
 
+func TestEvalInfixStringExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{`"Stan " + "Lo"`, "Stan Lo"},
+		{`"Dog" + "&" + "Cat"`, "Dog&Cat"},
+		{`"Dog" == "Dog"`, true},
+		{`"1234" > "123"`, true},
+		{`"1234" < "123"`, false},
+		{`"1234" != "123"`, true},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		switch tt.expected.(type) {
+		case bool:
+			testBooleanObject(t, evaluated, tt.expected.(bool))
+		case string:
+			testStringObject(t, evaluated, tt.expected.(string))
+		}
+	}
+}
+
 func TestEvalInfixBooleanExpression(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -309,6 +364,21 @@ func TestEvalIntegerExpression(t *testing.T) {
 	}
 }
 
+func TestEvalStringExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{`"st0012"`, "st0012"},
+		{`'Monkey'`, "Monkey"},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		testStringObject(t, evaluated, tt.expected)
+	}
+}
+
 func TestEvalBooleanExpression(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -354,6 +424,20 @@ func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
 	}
 	if result.Value != expected {
 		t.Errorf("object has wrong value. expect=%d, got=%d", expected, result.Value)
+		return false
+	}
+
+	return true
+}
+
+func testStringObject(t *testing.T, obj object.Object, expected string) bool {
+	result, ok := obj.(*object.String)
+	if !ok {
+		t.Errorf("object is not a String. got=%T (%+v)", obj, obj)
+		return false
+	}
+	if result.Value != expected {
+		t.Errorf("object has wrong value. expect=%s, got=%s", expected, result.Value)
 		return false
 	}
 

@@ -35,11 +35,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		}
 		return env.Set(node.Name.Value, val)
 	case *ast.Identifier:
-		val, exist := env.Get(node.Value)
-		if !exist {
-			return newError("identifier not found: %s", node.Value)
-		}
-		return val
+		return evalIdentifier(node, env)
 
 	// Expressions
 	case *ast.IfExpression:
@@ -76,6 +72,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalInfixExpression(valLeft, node.Operator, valRight)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
+	case *ast.StringLiteral:
+		return &object.String{Value: node.Value}
 	case *ast.Boolean:
 		if node.Value {
 			return TRUE
@@ -84,6 +82,18 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	}
 
 	return nil
+}
+
+func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
+	if val, ok := env.Get(node.Value); ok {
+		return val
+	}
+
+	if buildin, ok := builtins[node.Value]; ok {
+		return buildin
+	}
+
+	return newError("identifier not found: %s", node.Value)
 }
 
 func evalProgram(stmts []ast.Statement, env *object.Environment) object.Object {
@@ -157,6 +167,8 @@ func evalInfixExpression(left object.Object, operator string, right object.Objec
 		return evalIntegerInfixExpression(left, operator, right)
 	case left.Type() == object.BOOLEAN_OBJ && right.Type() == object.BOOLEAN_OBJ:
 		return evalBooleanInfixExpression(left, operator, right)
+	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
+		return evalStringInfixExpression(left, operator, right)
 	default:
 		return newError("type mismatch: %s %s %s", left.Type(), operator, right.Type())
 	}
@@ -202,6 +214,26 @@ func evalBooleanInfixExpression(left object.Object, operator string, right objec
 
 }
 
+func evalStringInfixExpression(left object.Object, operator string, right object.Object) object.Object {
+	leftValue := left.(*object.String).Value
+	rightValue := right.(*object.String).Value
+
+	switch operator {
+	case "+":
+		return &object.String{Value: leftValue + rightValue}
+	case ">":
+		return &object.Boolean{Value: leftValue > rightValue}
+	case "<":
+		return &object.Boolean{Value: leftValue < rightValue}
+	case "==":
+		return &object.Boolean{Value: leftValue == rightValue}
+	case "!=":
+		return &object.Boolean{Value: leftValue != rightValue}
+	default:
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
 func evalIfExpression(exp *ast.IfExpression, env *object.Environment) object.Object {
 	condition := Eval(exp.Condition, env)
 	if isError(condition) {
@@ -220,22 +252,23 @@ func evalIfExpression(exp *ast.IfExpression, env *object.Environment) object.Obj
 }
 
 func applyFunction(fn object.Object, args []object.Object) object.Object {
-	function, ok := fn.(*object.Function)
-	if !ok {
-		return newError("not a function: %s", fn)
-	}
+	switch fn := fn.(type) {
+	case *object.Function:
 
-	if len(function.Parameters) != len(args) {
-		return newError("wrong arguments: expect=%d, got=%d", len(function.Parameters), len(args))
-	}
+		if len(fn.Parameters) != len(args) {
+			return newError("wrong arguments: expect=%d, got=%d", len(fn.Parameters), len(args))
+		}
 
-	extendedEnv := extendFunctionEnv(function, args)
-	evaluatedFunction := Eval(function.Body, extendedEnv)
+		extendedEnv := extendFunctionEnv(fn, args)
+		evaluated := Eval(fn.Body, extendedEnv)
+		return unwrapReturnValue(evaluated)
 
-	if returnValue, ok := evaluatedFunction.(*object.ReturnValue); ok {
-		return returnValue.Value
+	case *object.BuiltInFunction:
+		return fn.Fn(args...)
+
+	default:
+		return newError("not a function: %s", fn.Type())
 	}
-	return evaluatedFunction
 }
 
 func evalArgs(exps []ast.Expression, env *object.Environment) []object.Object {
@@ -272,4 +305,12 @@ func isError(obj object.Object) bool {
 		return obj.Type() == object.ERROR_OBJ
 	}
 	return false
+}
+
+func unwrapReturnValue(obj object.Object) object.Object {
+	if returnValue, ok := obj.(*object.ReturnValue); ok {
+		return returnValue.Value
+	}
+
+	return obj
 }

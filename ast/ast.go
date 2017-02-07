@@ -134,6 +134,24 @@ func (il *IntegerLiteral) String() string {
 	return il.Token.Literal
 }
 
+type StringLiteral struct {
+	Token token.Token
+	Value string
+}
+
+func (sl *StringLiteral) expressionNode() {}
+func (sl *StringLiteral) TokenLiteral() string {
+	return sl.Token.Literal
+}
+func (sl *StringLiteral) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("\"")
+	out.WriteString(sl.Token.Literal)
+	out.WriteString("\"")
+	return out.String()
+}
+
 type PrefixExpression struct {
 	Token    token.Token
 	Operator string
@@ -242,8 +260,8 @@ func (bs *BlockStatement) String() string {
 }
 
 type FunctionExpression struct {
-	Token token.Token
-	Parameters []*Identifier
+	Token          token.Token
+	Parameters     []*Identifier
 	BlockStatement *BlockStatement
 }
 
@@ -259,7 +277,7 @@ func (fe *FunctionExpression) String() string {
 
 	for i, param := range fe.Parameters {
 		out.WriteString(param.String())
-		if i != len(fe.Parameters) - 1 {
+		if i != len(fe.Parameters)-1 {
 			out.WriteString(", ")
 		}
 	}
@@ -273,8 +291,8 @@ func (fe *FunctionExpression) String() string {
 }
 
 type CallExpression struct {
-	Token token.Token
-	Function Expression // Identifier or FunctionExpression
+	Token     token.Token
+	Function  Expression // Identifier or FunctionExpression
 	Arguments []Expression
 }
 
